@@ -1300,6 +1300,17 @@ def recommend_pred(series_cust, day_start_val, eval_mid=True, sub_i=-1):
             pred = np.zeros(len(df_pred))
             for i in range(n_splits):
                 pred += list_model[i].predict(df_test) / n_splits
+                # if dev == "gpu":
+                #     with redirect_stdout(open(os.devnull, "w")):
+                #         fm = ForestInference.load(
+                #             filename=f"{save_path}/lgbm.model",
+                #             output_class=True,
+                #             model_type="lightgbm",
+                #         )
+                #     pred += fm.predict_proba(df_test)[:, 1] / n_splits
+                # else:
+                #     pred += list_model[i].predict(df_test) / n_splits
+
             df_pred["pred"] = pred
 
             df_pred_list.append(df_pred)
