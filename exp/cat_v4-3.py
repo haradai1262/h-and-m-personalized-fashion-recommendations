@@ -1,22 +1,16 @@
-import cudf
-from cuml import ForestInference
-
-import numpy as np  # linear algebra
-import pandas as pd  # data processing, CSV file I/O (e.g. pd.read_csv)
+import numpy as np
+import pandas as pd
 import random
 import time
 import gc
-from sklearn.model_selection import train_test_split
-from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import LabelEncoder
-import lightgbm as lgb
 import datetime
 import itertools
 import os
-from contextlib import redirect_stdout
 from tqdm.auto import tqdm
 
 from catboost import CatBoostRanker, Pool
+import cudf
 
 from utils import Timer
 
@@ -1106,23 +1100,6 @@ def recommend_train(day_start_val):
         df_art.to_pickle(f"{cache_dir}/df_art_{day_oldest_str}.pkl")
         df_cust.to_pickle(f"{cache_dir}/df_cust_{day_oldest_str}.pkl")
 
-    # q_date = ""
-    # for i in range(len(day_start)):
-    #     if i == 0:
-    #         q_date = f"((t_dat >= '{day_start[0]}') and (t_dat <= '{day_end[0]}'))"
-    #     else:
-    #         q_date = (
-    #             q_date
-    #             + f" or ((t_dat >= '{day_start[i]}') and (t_dat <= '{day_end[i]}'))"
-    #         )
-    # top_art_all = (
-    #     df_trans.query(q_date)
-    #     .groupby("article_id")["t_dat"]
-    #     .count()
-    #     .sort_values(ascending=False)
-    #     .index[:N]
-    #     .tolist()
-    # )
     top_art_all_dict = {}
     for i in range(len(day_start)):
         q_date = f"((t_dat >= '{day_start[i] - datetime.timedelta(days=7*slide_week)}') and (t_dat <= '{day_end[i]}'))"
@@ -1389,10 +1366,8 @@ def recommend_pred(series_cust, day_start_val, eval_mid=True, sub_i=-1):
     ]
     n_models = len(list_model)
 
-    # for iter_train in tqdm(range(n_iter)):
     df_ans = pd.DataFrame()
     df_pred_list = []
-    # list_model = pd.read_pickle(f"{save_path}/models_iter{iter_train}.pkl")
     for iter_art in tqdm(range(len(list_sl) - 1)):
         top_art = top_art_all[list_sl[iter_art] : list_sl[iter_art + 1]]
 
@@ -1407,11 +1382,11 @@ def recommend_pred(series_cust, day_start_val, eval_mid=True, sub_i=-1):
                 [
                     "product_code",
                     "product_type_no",
-                    "product_group_name",  #
+                    "product_group_name",
                     "graphical_appearance_no",
                     "colour_group_code",
-                    "perceived_colour_value_id",  #
-                    "perceived_colour_master_id",  #
+                    "perceived_colour_value_id",
+                    "perceived_colour_master_id",
                     "department_no",
                     "index_code",
                     "index_group_no",
@@ -1450,8 +1425,6 @@ def recommend_pred(series_cust, day_start_val, eval_mid=True, sub_i=-1):
             feat,
         )
 
-        df_test.to_pickle(f"{save_path}/df_test_300.pkl")
-        print(fdsa)
         df_pred = df_test[["customer_id", "article_id"]].copy()
         df_test = df_test.drop(
             [
@@ -1465,20 +1438,9 @@ def recommend_pred(series_cust, day_start_val, eval_mid=True, sub_i=-1):
         )
 
         pred = np.zeros(len(df_pred))
-        # for i in range(n_splits):
         for i in range(n_models):
             for j in range(n_splits):
                 pred += list_model[i][j].predict(df_test) / (n_models * n_splits)
-            # if dev == "gpu":
-            #     with redirect_stdout(open(os.devnull, "w")):
-            #         fm = ForestInference.load(
-            #             filename=f"{save_path}/lgbm.model",
-            #             output_class=True,
-            #             model_type="lightgbm",
-            #         )
-            #     pred += fm.predict_proba(df_test)[:, 1] / n_splits
-            # else:
-            #     pred += list_model[i].predict(df_test) / n_splits
 
         df_pred["pred"] = pred
 
@@ -1605,7 +1567,7 @@ else:
     gc.collect()
 
 if mode == "cv":
-    # recommend_train(day_start_val=day_start_val)
+    recommend_train(day_start_val=day_start_val)
     recommend_pred(df_agg_val_1["customer_id"], day_start_valtmp)
 
 elif mode == "sub":
